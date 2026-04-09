@@ -1,56 +1,273 @@
-
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2G2 掃除当番ボード</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:var(--font-sans);}
-.wrap{padding:1rem 0;}
-h2{font-size:18px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px;}
-.sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;}
-.controls{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;}
-.controls label{font-size:13px;color:var(--color-text-secondary);}
-.board{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;}
-.zone{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px;min-height:100px;}
-.zone-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;display:flex;justify-content:space-between;}
-.zone-count{font-size:11px;color:var(--color-text-tertiary);}
-.zone-cards{display:flex;flex-wrap:wrap;gap:6px;min-height:48px;}
-.card{display:inline-flex;align-items:center;padding:6px 10px;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:grab;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);user-select:none;transition:opacity 0.15s;}
-.card:active{cursor:grabbing;opacity:0.7;}
-.card.dragging{opacity:0.4;}
-.card.hako{background:#FAEEDA;color:#633806;border-color:#EF9F27;}
-.card.haki{background:#E6F1FB;color:#0C447C;border-color:#85B7EB;}
-.card.lounge{background:#E1F5EE;color:#085041;border-color:#5DCAA5;}
-.zone.drag-over{border-color:var(--color-border-primary);background:var(--color-background-secondary);}
-.btn-reset{font-size:12px;padding:6px 14px;}
-.warn{font-size:12px;color:var(--color-text-danger);margin-top:4px;min-height:18px;}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FFFFFF;
+    --border: rgba(0,0,0,0.1);
+    --border-strong: rgba(0,0,0,0.2);
+    --text: #1A1A1A;
+    --text-muted: #777;
+    --amber-bg: #FDF3DC;
+    --amber-text: #7A4A00;
+    --amber-border: #E8B84B;
+    --blue-bg: #EAF2FB;
+    --blue-text: #0C3D7A;
+    --blue-border: #6AAADE;
+    --teal-bg: #E0F5EE;
+    --teal-text: #0A5040;
+    --teal-border: #4DBFA0;
+    --accent: #2D5BE3;
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .controls label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  select {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  button {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  button:hover { background: #eee; }
+  button:active { transform: scale(0.98); }
+
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .zone {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    min-height: 130px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .zone.drag-over {
+    border-color: var(--accent);
+    background: #F0F4FF;
+  }
+
+  .zone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .zone-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  .zone-count {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg);
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+
+  .zone-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+  }
+
+  .card {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: grab;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    user-select: none;
+    transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+
+  .card:hover { transform: translateY(-1px); }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: 0.35; }
+
+  .card.hako { background: var(--amber-bg); color: var(--amber-text); border-color: var(--amber-border); }
+  .card.haki { background: var(--blue-bg); color: var(--blue-text); border-color: var(--blue-border); }
+  .card.lounge { background: var(--teal-bg); color: var(--teal-text); border-color: var(--teal-border); }
+
+  .warn {
+    text-align: center;
+    font-size: 13px;
+    color: #C0392B;
+    margin-top: 12px;
+    min-height: 20px;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 500px) {
+    .board { grid-template-columns: 1fr; }
+    header h1 { font-size: 22px; }
+  }
 </style>
-<div class="wrap">
-<h2 class="sr-only">2G2掃除当番ボード</h2>
-<h2>2G2 掃除当番ボード</h2>
-<p class="sub">名前カードを役割欄にドラッグして担当を決めてください</p>
+</head>
+<body>
+
+<header>
+  <h1>2G2 掃除当番ボード</h1>
+  <p>名前カードを役割欄にドラッグして担当を決めてください</p>
+</header>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#E8B84B;"></div>教室 机・椅子運び（4人）</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#6AAADE;"></div>教室 床掃き（3人）</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#4DBFA0;"></div>ラウンジ・廊下（1人）</div>
+</div>
+
 <div class="controls">
   <label>当番班：</label>
   <select id="roundSel"></select>
-  <button class="btn-reset" id="resetBtn">リセット</button>
+  <button id="resetBtn">リセット</button>
 </div>
+
 <div class="board">
   <div class="zone" id="zone-hako" data-role="hako" data-max="4">
-    <div class="zone-title">教室 机・椅子運び <span class="zone-count" id="count-hako">0 / 4</span></div>
+    <div class="zone-header">
+      <span class="zone-title">教室 机・椅子運び</span>
+      <span class="zone-count" id="count-hako">0 / 4</span>
+    </div>
     <div class="zone-cards" id="cards-hako"></div>
   </div>
   <div class="zone" id="zone-haki" data-role="haki" data-max="3">
-    <div class="zone-title">教室 床掃き <span class="zone-count" id="count-haki">0 / 3</span></div>
+    <div class="zone-header">
+      <span class="zone-title">教室 床掃き</span>
+      <span class="zone-count" id="count-haki">0 / 3</span>
+    </div>
     <div class="zone-cards" id="cards-haki"></div>
   </div>
   <div class="zone" id="zone-lounge" data-role="lounge" data-max="1">
-    <div class="zone-title">ラウンジ・廊下 <span class="zone-count" id="count-lounge">0 / 1</span></div>
+    <div class="zone-header">
+      <span class="zone-title">ラウンジ・廊下</span>
+      <span class="zone-count" id="count-lounge">0 / 1</span>
+    </div>
     <div class="zone-cards" id="cards-lounge"></div>
   </div>
   <div class="zone" id="zone-pool" data-role="pool" data-max="99">
-    <div class="zone-title">未割り当て <span class="zone-count" id="count-pool">8 / 8</span></div>
+    <div class="zone-header">
+      <span class="zone-title">未割り当て</span>
+      <span class="zone-count" id="count-pool">8 / 8</span>
+    </div>
     <div class="zone-cards" id="cards-pool"></div>
   </div>
 </div>
+
 <div class="warn" id="warn"></div>
-</div>
+
 <script>
 const students=[
   [1,"井黒 史哉"],[2,"伊集 直人"],[3,"磯田 光来"],[4,"井上 航太"],[5,"岩﨑 梁介"],
@@ -81,9 +298,8 @@ function getCountEl(role){return document.getElementById('count-'+role);}
 
 function updateCounts(){
   ['hako','haki','lounge','pool'].forEach(r=>{
-    const cards=getZoneEl(r).querySelectorAll('.card').length;
-    const max=document.getElementById('zone-'+r).dataset.max;
-    getCountEl(r).textContent=r==='pool'?`${cards} / 8`:`${cards} / ${max}`;
+    const n=getZoneEl(r).querySelectorAll('.card').length;
+    getCountEl(r).textContent=r==='pool'?`${n} / 8`:`${n} / ${document.getElementById('zone-'+r).dataset.max}`;
   });
 }
 
@@ -104,15 +320,16 @@ function makeCard(s,role){
     document.querySelectorAll('.zone').forEach(z=>z.classList.remove('drag-over'));
     updateCounts();
   });
+  el.addEventListener('touchstart',e=>{
+    dragging=el;
+    el.classList.add('dragging');
+  },{passive:true});
   return el;
 }
 
 function setupZones(){
   document.querySelectorAll('.zone').forEach(zone=>{
-    zone.addEventListener('dragover',e=>{
-      e.preventDefault();
-      zone.classList.add('drag-over');
-    });
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
     zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
     zone.addEventListener('drop',e=>{
       e.preventDefault();
@@ -121,8 +338,7 @@ function setupZones(){
       const role=zone.dataset.role;
       const max=parseInt(zone.dataset.max);
       const cardsEl=zone.querySelector('.zone-cards');
-      const current=cardsEl.querySelectorAll('.card').length;
-      if(role!=='pool'&&current>=max){
+      if(role!=='pool'&&cardsEl.querySelectorAll('.card').length>=max){
         const warn=document.getElementById('warn');
         warn.textContent=`この役割は${max}人までです`;
         setTimeout(()=>warn.textContent='',2000);
@@ -146,3 +362,5 @@ document.getElementById('resetBtn').addEventListener('click',()=>loadRound(parse
 setupZones();
 loadRound(0);
 </script>
+</body>
+</html>
