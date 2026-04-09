@@ -1,0 +1,148 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);}
+.wrap{padding:1rem 0;}
+h2{font-size:18px;font-weight:500;color:var(--color-text-primary);margin-bottom:4px;}
+.sub{font-size:13px;color:var(--color-text-secondary);margin-bottom:1rem;}
+.controls{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;flex-wrap:wrap;}
+.controls label{font-size:13px;color:var(--color-text-secondary);}
+.board{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.5rem;}
+.zone{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:12px;min-height:100px;}
+.zone-title{font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:8px;display:flex;justify-content:space-between;}
+.zone-count{font-size:11px;color:var(--color-text-tertiary);}
+.zone-cards{display:flex;flex-wrap:wrap;gap:6px;min-height:48px;}
+.card{display:inline-flex;align-items:center;padding:6px 10px;border-radius:var(--border-radius-md);font-size:13px;font-weight:500;cursor:grab;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);user-select:none;transition:opacity 0.15s;}
+.card:active{cursor:grabbing;opacity:0.7;}
+.card.dragging{opacity:0.4;}
+.card.hako{background:#FAEEDA;color:#633806;border-color:#EF9F27;}
+.card.haki{background:#E6F1FB;color:#0C447C;border-color:#85B7EB;}
+.card.lounge{background:#E1F5EE;color:#085041;border-color:#5DCAA5;}
+.zone.drag-over{border-color:var(--color-border-primary);background:var(--color-background-secondary);}
+.btn-reset{font-size:12px;padding:6px 14px;}
+.warn{font-size:12px;color:var(--color-text-danger);margin-top:4px;min-height:18px;}
+</style>
+<div class="wrap">
+<h2 class="sr-only">2G2掃除当番ボード</h2>
+<h2>2G2 掃除当番ボード</h2>
+<p class="sub">名前カードを役割欄にドラッグして担当を決めてください</p>
+<div class="controls">
+  <label>当番班：</label>
+  <select id="roundSel"></select>
+  <button class="btn-reset" id="resetBtn">リセット</button>
+</div>
+<div class="board">
+  <div class="zone" id="zone-hako" data-role="hako" data-max="4">
+    <div class="zone-title">教室 机・椅子運び <span class="zone-count" id="count-hako">0 / 4</span></div>
+    <div class="zone-cards" id="cards-hako"></div>
+  </div>
+  <div class="zone" id="zone-haki" data-role="haki" data-max="3">
+    <div class="zone-title">教室 床掃き <span class="zone-count" id="count-haki">0 / 3</span></div>
+    <div class="zone-cards" id="cards-haki"></div>
+  </div>
+  <div class="zone" id="zone-lounge" data-role="lounge" data-max="1">
+    <div class="zone-title">ラウンジ・廊下 <span class="zone-count" id="count-lounge">0 / 1</span></div>
+    <div class="zone-cards" id="cards-lounge"></div>
+  </div>
+  <div class="zone" id="zone-pool" data-role="pool" data-max="99">
+    <div class="zone-title">未割り当て <span class="zone-count" id="count-pool">8 / 8</span></div>
+    <div class="zone-cards" id="cards-pool"></div>
+  </div>
+</div>
+<div class="warn" id="warn"></div>
+</div>
+<script>
+const students=[
+  [1,"井黒 史哉"],[2,"伊集 直人"],[3,"磯田 光来"],[4,"井上 航太"],[5,"岩﨑 梁介"],
+  [6,"浦野 紺"],[7,"小野 優太"],[8,"金木 颯士"],[9,"雲 駿成"],[10,"郡司 幸輝"],
+  [11,"呉 可穎"],[12,"齊藤 弥桜"],[13,"榊山 育麦"],[14,"佐藤 奏多"],[15,"佐藤 康亮"],
+  [16,"佐藤 奨眞"],[17,"佐野 彩芭"],[18,"澤田石 望"],[19,"柴田 龍之介"],[20,"清木 恵太"],
+  [21,"髙田 淳史"],[22,"高橋 諒"],[23,"髙安 康太"],[24,"武元 悠真"],[25,"田中 陽葵"],
+  [26,"寺井 里奈"],[27,"中上 絢響"],[28,"中村 莉子"],[29,"橋本 涼子"],[30,"福島 壱太"],
+  [31,"堀口 真優"],[32,"増田 和人"],[33,"宮崎 夏海"],[34,"宮﨑 雄一斗"],[35,"村越 莉渚"],
+  [36,"山﨑 勇武"],[37,"横山 陽依"],[38,"林 雍"],[39,"和久山 輝弥"],[40,"渡辺 栞菜"]
+];
+
+const rounds=[];
+for(let i=0;i<5;i++) rounds.push(students.slice(i*8,i*8+8));
+
+const sel=document.getElementById('roundSel');
+for(let i=0;i<5;i++){
+  const o=document.createElement('option');
+  o.value=i;
+  o.textContent=`第${i+1}班`;
+  sel.appendChild(o);
+}
+
+let dragging=null;
+
+function getZoneEl(role){return document.getElementById('cards-'+role);}
+function getCountEl(role){return document.getElementById('count-'+role);}
+
+function updateCounts(){
+  ['hako','haki','lounge','pool'].forEach(r=>{
+    const cards=getZoneEl(r).querySelectorAll('.card').length;
+    const max=document.getElementById('zone-'+r).dataset.max;
+    getCountEl(r).textContent=r==='pool'?`${cards} / 8`:`${cards} / ${max}`;
+  });
+}
+
+function makeCard(s,role){
+  const el=document.createElement('div');
+  el.className='card'+(role&&role!=='pool'?' '+role:'');
+  el.textContent=`${s[0]} ${s[1]}`;
+  el.dataset.id=s[0];
+  el.draggable=true;
+  el.addEventListener('dragstart',e=>{
+    dragging=el;
+    el.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+  });
+  el.addEventListener('dragend',()=>{
+    el.classList.remove('dragging');
+    dragging=null;
+    document.querySelectorAll('.zone').forEach(z=>z.classList.remove('drag-over'));
+    updateCounts();
+  });
+  return el;
+}
+
+function setupZones(){
+  document.querySelectorAll('.zone').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{
+      e.preventDefault();
+      zone.classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      if(!dragging)return;
+      const role=zone.dataset.role;
+      const max=parseInt(zone.dataset.max);
+      const cardsEl=zone.querySelector('.zone-cards');
+      const current=cardsEl.querySelectorAll('.card').length;
+      if(role!=='pool'&&current>=max){
+        const warn=document.getElementById('warn');
+        warn.textContent=`この役割は${max}人までです`;
+        setTimeout(()=>warn.textContent='',2000);
+        return;
+      }
+      dragging.className='card'+(role&&role!=='pool'?' '+role:'');
+      cardsEl.appendChild(dragging);
+      updateCounts();
+    });
+  });
+}
+
+function loadRound(idx){
+  ['hako','haki','lounge','pool'].forEach(r=>getZoneEl(r).innerHTML='');
+  rounds[idx].forEach(s=>getZoneEl('pool').appendChild(makeCard(s,'pool')));
+  updateCounts();
+}
+
+sel.addEventListener('change',()=>loadRound(parseInt(sel.value)));
+document.getElementById('resetBtn').addEventListener('click',()=>loadRound(parseInt(sel.value)));
+setupZones();
+loadRound(0);
+</script>
